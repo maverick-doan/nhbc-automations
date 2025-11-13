@@ -1,6 +1,14 @@
+import subprocess
+
 class AudioNormaliser:
     """
-    Handles audio normalisation parameters for sermon audio processing (default to Netflix standard - usually used at NHBC Balmoral).
+    Handles audio normalisation parameters for sermon audio processing (default to Netflix standard).
+    Default parameters (at NHBC Balmoral):
+        - Target LUFS: -27.0
+        - True Peak: -2.0 dBTP
+        - Loudness Range: 7.0 LU
+        - Audio Codec: aac
+        - Audio Bitrate: 192k
     """
     def __init__(
         self, 
@@ -25,3 +33,20 @@ class AudioNormaliser:
         self.loudness_range = loudness_range
         self.audio_codec = audio_codec
         self.audio_bitrate = audio_bitrate
+
+    # Helpers methods
+
+    @staticmethod
+    def _run_command(command: str) -> None:
+        return subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    
+    @staticmethod
+    def _check_ffmpeg_installed() -> bool:
+        try:
+            AudioNormaliser._run_command("ffmpeg -version")
+            return True
+        except subprocess.CalledProcessError:
+            return False
+        
+    def analyse_audio(self, input_file: str) -> dict:
+        pass
