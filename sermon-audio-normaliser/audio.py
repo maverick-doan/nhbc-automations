@@ -1,4 +1,6 @@
 import subprocess
+from pathlib import Path
+import json
 
 class AudioNormaliser:
     """
@@ -37,16 +39,28 @@ class AudioNormaliser:
     # Helpers methods
 
     @staticmethod
-    def _run_command(command: str) -> None:
+    def _run_command(command: str | list[str]) -> None:
         return subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
     
     @staticmethod
     def _check_ffmpeg_installed() -> bool:
         try:
-            AudioNormaliser._run_command("ffmpeg -version")
+            subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             return True
         except subprocess.CalledProcessError:
             return False
         
-    def analyse_audio(self, input_file: str) -> dict:
-        pass
+    def analyse_audio(self, input_file: Path) -> dict:
+        command = [
+            "ffmpeg",
+            "-i", str(input_file),
+            "-af", f"loudnorm=I={self.target_lufs}:TP={self.true_peak}:LRA={self.loudness_range}:print_format=json",
+            "-f", "null",
+            "-"
+        ]
+        result = self._run_command(command)
+        json_start = result.stderr.find('{')
+        if json_start == -1:
+            raise ValueError("Loudness analysis failed, no JSON output found.")
+        json_blob = result.stderr[json_start:]
+        return json.loads(json_blob)
