@@ -50,6 +50,8 @@ class AudioNormaliser:
         except subprocess.CalledProcessError:
             return False
         
+    # Main methods
+        
     def analyse_audio(self, input_file: Path) -> dict:
         command = [
             "ffmpeg",
@@ -64,3 +66,43 @@ class AudioNormaliser:
             raise ValueError("Loudness analysis failed, no JSON output found.")
         json_blob = result.stderr[json_start:]
         return json.loads(json_blob)
+
+    def _build_normalisation_filter(self, stats: dict) -> str:
+        return (
+            f"loudnorm=I={self.target_lufs}:TP={self.true_peak}:LRA={self.loudness_range}:"
+            f"measured_I={stats['input_i']}:"
+            f"measured_TP={stats['input_tp']}:"
+            f"measured_LRA={stats['input_lra']}:"
+            f"measured_thresh={stats['input_thresh']}:"
+            f"offset={stats['target_offset']}:"
+            "linear=true:print_format=summary"
+        )
+    
+    def normalise_audio(self, input_file: Path, output_file: Path) -> None:
+        """
+        Run two-pass loudness normalisation on the input video file and save to output file.
+        Video stream is copied without re-encoding.
+        Audio stream is normalised according to the specified parameters, and will be re-encoded.
+        """
+        input_file = Path(input_file)
+        output_file = Path(output_file)
+        
+        if not input_file.exists():
+            raise FileNotFoundError(f"Input file {input_file} does not exist.")
+        
+        stats = self.analyse_audio(input_file)
+        normalisation_filter = self._build_normalisation_filter(stats)
+
+        command = [
+            "ffmpeg",
+            "-i", str(input_file),
+            "-c:v", "copy",
+            "-c:a", self.audio_codec,
+            "-b:a", self.audio_bitrate,
+            "-af", normalisation_filter,
+            "-map", "0:v", # Map all video streams from input file
+            "-map", "0:a", # Map all audio streams from input file
+            str(output_file)
+        ]
+
+        self._run_command(command)
