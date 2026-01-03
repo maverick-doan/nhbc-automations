@@ -1,11 +1,24 @@
 import subprocess
-import sys
+import shutil, os
 from pathlib import Path
 from tkinter import filedialog, Tk
 
 class WindowsUtils:
     """Utility functions for Windows operations."""
-    
+    @staticmethod
+    def secure_binary_search(binary_name: str) -> str | None:
+        """
+        Check if a binary is available in the system PATH.
+        """
+        system_path = os.environ.get("PATH", "")
+        try:
+            binary_path = shutil.which(binary_name, path=system_path)
+            if binary_path:
+                return binary_path
+        except Exception:
+            return None
+        return None
+
     @staticmethod
     def shutdown_computer(delay_seconds: int = 60):
         """

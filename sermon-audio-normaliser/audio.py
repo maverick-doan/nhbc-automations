@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 import json
+import utils
 
 class AudioNormaliser:
     """
@@ -44,6 +45,9 @@ class AudioNormaliser:
     
     @staticmethod
     def _check_ffmpeg_installed() -> bool:
+        ffmpeg_path = utils.WindowsUtils.secure_binary_search("ffmpeg")
+        if not ffmpeg_path:
+            return False
         try:
             subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             return True
