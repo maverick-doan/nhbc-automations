@@ -90,15 +90,20 @@ def main():
         
         # Ask about shutdown
         shutdown = input("Shutdown computer now? (y/n): ").strip().lower()
-        if shutdown == 'y':
-            delay = 30
-            print(f"\nShutting down in {delay} seconds...")
-            print("Close this window to cancel shutdown.")
-            WindowsUtils.shutdown_computer(delay_seconds=delay)
-            input("\nPress Enter to exit...")
-        else:
-            print("\nShutdown cancelled. You can close this window.")
-            input("\nPress Enter to exit...")
+        start_time = datetime.now()
+        while (datetime.now() - start_time).seconds < 120:
+            if shutdown == 'y':
+                delay = 30
+                print(f"\nShutting down in {delay} seconds...")
+                print("Close this window to cancel shutdown.")
+                WindowsUtils.shutdown_computer(delay_seconds=delay)
+                input("\nPress Enter to exit...")
+            else:
+                print("\nShutdown cancelled. You can close this window.")
+                input("\nPress Enter to exit...")
+        print("\nNo shutdown confirmed. Automatic shutdown assumed.")
+        WindowsUtils.shutdown_computer(delay_seconds=30)
+        input("\nPress Enter to exit...")
     
     except FileNotFoundError as e:
         print(f"\nERROR: {e}")
