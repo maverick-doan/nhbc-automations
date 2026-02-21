@@ -1,0 +1,5 @@
+# Requirements for sermon-audio-normaliser
+# No third-party Python packages required.
+# Requires Python 3.10 or newer (uses PEP 604 union types).
+# External dependency: FFmpeg must be installed and available on PATH.
+# Download: https://ffmpeg.org/download.html
