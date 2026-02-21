@@ -65,11 +65,18 @@ class AudioNormaliser:
             "-"
         ]
         result = self._run_command(command)
-        json_start = result.stderr.find('{')
+        # ffmpeg returns bytes in stderr; decode to string before searching for JSON
+        stderr_text = result.stderr.decode('utf-8', errors='replace')
+        json_start = stderr_text.find('{')
         if json_start == -1:
             raise ValueError("Loudness analysis failed, no JSON output found.")
-        json_blob = result.stderr[json_start:]
-        return json.loads(json_blob)
+        json_blob = stderr_text[json_start:]
+        decoder = json.JSONDecoder()
+        try:
+            obj, end = decoder.raw_decode(json_blob)
+            return obj
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Loudness analysis failed, JSON decode error: {e}") from e
 
     def _build_normalisation_filter(self, stats: dict) -> str:
         return (

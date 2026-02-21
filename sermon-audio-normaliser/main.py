@@ -33,9 +33,9 @@ def main():
     print(f"Selected: {input_file.name}")
     print()
     
-    # Create output filename with timestamp
+    # Create output filename with timestamp (preserve input extension)
     timestamp = datetime.now(tz=ZoneInfo("Australia/Brisbane")).strftime("%Y_%m_%d")
-    output_file = input_file.parent / f"NHBC_Bal_{timestamp}_Normalised_Audio"
+    output_file = input_file.parent / f"NHBC_Bal_{timestamp}_Normalised_Audio{input_file.suffix}"
     
     print(f"Output will be saved to: {output_file.name}")
     print()
