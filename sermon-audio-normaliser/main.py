@@ -33,9 +33,36 @@ def main():
     print(f"Selected: {input_file.name}")
     print()
     
+    # Select output folder
+    print("Step 2: Select the output folder...")
+    output_folder = WindowsUtils.select_folder(title="Select Output Folder")
+    
+    if not output_folder:
+        print("No folder selected. Exiting...")
+        input("\nPress Enter to exit...")
+        sys.exit(0)
+    
+    print(f"Output folder: {output_folder}")
+    
+    # Check if output folder is in OneDrive
+    is_onedrive = WindowsUtils.is_path_in_onedrive(output_folder)
+    if not is_onedrive:
+        print()
+        print("WARNING: Selected folder is NOT in OneDrive.")
+        print("It's recommended to save to OneDrive for automatic syncing and sharing.")
+        print()
+        response = input("Continue anyway? (y/n): ").strip().lower()
+        if response != 'y':
+            print("Cancelled by user.")
+            input("\nPress Enter to exit...")
+            sys.exit(0)
+    else:
+        print("✓ Output folder is in OneDrive")
+    print()
+    
     # Create output filename with timestamp (preserve input extension)
     timestamp = datetime.now(tz=ZoneInfo("Australia/Brisbane")).strftime("%Y_%m_%d")
-    output_file = input_file.parent / f"NHBC_Bal_{timestamp}_Normalised_Audio{input_file.suffix}"
+    output_file = output_folder / f"NHBC_Bal_{timestamp}_Normalised_Audio{input_file.suffix}"
     
     print(f"Output will be saved to: {output_file.name}")
     print()
@@ -88,22 +115,27 @@ def main():
         print(f"Output file: {output_file}")
         print()
         
+        # Sync OneDrive if applicable
+        if is_onedrive:
+            print("Syncing OneDrive...")
+            sync_success = WindowsUtils.sync_onedrive()
+            if sync_success:
+                print("OneDrive sync completed successfully")
+            else:
+                print("OneDrive sync may still be in progress")
+            print()
+        
         # Ask about shutdown
         shutdown = input("Shutdown computer now? (y/n): ").strip().lower()
-        start_time = datetime.now()
-        while (datetime.now() - start_time).seconds < 120:
-            if shutdown == 'y':
-                delay = 30
-                print(f"\nShutting down in {delay} seconds...")
-                print("Close this window to cancel shutdown.")
-                WindowsUtils.shutdown_computer(delay_seconds=delay)
-                input("\nPress Enter to exit...")
-            else:
-                print("\nShutdown cancelled. You can close this window.")
-                input("\nPress Enter to exit...")
-        print("\nNo shutdown confirmed. Automatic shutdown assumed.")
-        WindowsUtils.shutdown_computer(delay_seconds=30)
-        input("\nPress Enter to exit...")
+        if shutdown == 'y':
+            delay = 30
+            print(f"\nShutting down in {delay} seconds...")
+            print("Close this window to cancel shutdown.")
+            WindowsUtils.shutdown_computer(delay_seconds=delay)
+            input("\nPress Enter to exit...")
+        else:
+            print("\nShutdown cancelled. You can close this window.")
+            input("\nPress Enter to exit...")
     
     except FileNotFoundError as e:
         print(f"\nERROR: {e}")
