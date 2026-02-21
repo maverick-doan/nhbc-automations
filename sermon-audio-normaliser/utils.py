@@ -59,3 +59,15 @@ class WindowsUtils:
         root.destroy()
         
         return Path(file_path) if file_path else None
+    
+    @staticmethod
+    def select_folder(title: str = "Select a folder") -> Path | None:
+        """
+        Open a folder dialog for user to select an output folder.
+        """
+        root = Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        folder_path = filedialog.askdirectory(title=title)
+        root.destroy()
+        return Path(folder_path) if folder_path else None
