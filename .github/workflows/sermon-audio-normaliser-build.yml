@@ -30,7 +30,6 @@ jobs:
       - name: Build executable with PyInstaller
         run: |
           cd sermon-audio-normaliser
-          mkdir -p dist
           pyinstaller --onefile main.py --name sermon-audio-normaliser --clean
 
       - name: Commit and push changes
