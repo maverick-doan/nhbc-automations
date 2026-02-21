@@ -71,3 +71,18 @@ class WindowsUtils:
         folder_path = filedialog.askdirectory(title=title)
         root.destroy()
         return Path(folder_path) if folder_path else None
+    
+    @staticmethod
+    def _get_onedrive_roots() -> list[Path]:
+        """
+        Return list of OneDrive root directories from environment.
+        """
+        roots = []
+        for var in ("OneDrive", "OneDriveCommercial", "OneDriveConsumer"):
+            val = os.environ.get(var)
+            if val:
+                try:
+                    roots.append(Path(val).resolve())
+                except Exception:
+                    continue
+        return roots
