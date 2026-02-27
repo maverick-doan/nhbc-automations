@@ -19,6 +19,106 @@ class WindowsUtils:
         except Exception:
             return None
         return None
+    
+    @staticmethod
+    def get_onedrive_info() -> dict | None:
+        """
+        Get OneDrive process information including path and version.
+        Returns dict with 'path', 'version', and 'is_running' keys, or None if not found.
+        """
+        try:
+            # Check if OneDrive process is running
+            check_process = """
+            $OneDrive = Get-Process | Where-Object {$_.Name -like "*OneDrive*"} | Select-Object -First 1
+            if ($OneDrive) {
+                Write-Output "RUNNING"
+                Write-Output $OneDrive.Path
+            } else {
+                Write-Output "NOT_RUNNING"
+            }
+            """
+            
+            result = subprocess.run(
+                ["powershell", "-Command", check_process],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=10,
+                text=True
+            )
+            
+            lines = result.stdout.strip().split('\n')
+            is_running = lines[0].strip() == "RUNNING"
+            
+            # Get OneDrive path (from running process or default location)
+            onedrive_path = None
+            if is_running and len(lines) > 1:
+                onedrive_path = lines[1].strip()
+            else:
+                # Default OneDrive location
+                default_path = Path("C:/Program Files/Microsoft OneDrive/OneDrive.exe")
+                if default_path.exists():
+                    onedrive_path = str(default_path)
+            
+            if not onedrive_path:
+                return None
+            
+            # Get OneDrive version
+            version_cmd = f"""
+            $version = (Get-Command "{onedrive_path}").FileVersionInfo.ProductVersion
+            Write-Output $version
+            """
+            
+            version_result = subprocess.run(
+                ["powershell", "-Command", version_cmd],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=10,
+                text=True
+            )
+            
+            version = version_result.stdout.strip()
+            
+            return {
+                'path': onedrive_path,
+                'version': version,
+                'is_running': is_running
+            }
+            
+        except Exception as e:
+            print(f"Error getting OneDrive info: {e}")
+            return None
+    
+    @staticmethod
+    def ensure_onedrive_running() -> bool:
+        """
+        Ensure OneDrive is running. If not, attempt to start it.
+        Returns True if OneDrive is running, False otherwise.
+        """
+        info = WindowsUtils.get_onedrive_info()
+        if not info:
+            print("ERROR: OneDrive installation not found.")
+            return False
+        
+        if info['is_running']:
+            return True
+        
+        # Attempt to start OneDrive
+        try:
+            print("Starting OneDrive...")
+            subprocess.Popen([info['path']], shell=False)
+            time.sleep(5)  # Wait for OneDrive to start
+            
+            # Check again
+            info = WindowsUtils.get_onedrive_info()
+            if info and info['is_running']:
+                print("OneDrive started successfully.")
+                return True
+            else:
+                print("ERROR: Failed to start OneDrive.")
+                return False
+        except Exception as e:
+            print(f"ERROR: Failed to start OneDrive: {e}")
+            return False
 
     @staticmethod
     def shutdown_computer(delay_seconds: int = 60):
@@ -110,64 +210,87 @@ class WindowsUtils:
         return False
     
     @staticmethod
-    def sync_onedrive(timeout: int = 300) -> bool:
+    def sync_onedrive(file_path: Path, timeout: int = 1800) -> bool:
         """
-        Trigger OneDrive sync and wait for completion.
+        Trigger OneDrive sync and wait for file to be fully synced.
         
         Parameters:
-            timeout (int): Maximum time to wait for sync in seconds.
+            file_path (Path): The file to monitor for sync completion.
+            timeout (int): Maximum time to wait for sync in seconds (default 30 minutes).
         
         Returns:
             bool: True if sync completed, False if timeout or error.
         """
         try:
-            # Start OneDrive sync via PowerShell
-            # This triggers the sync process
-            ps_command = """
-            $OneDrive = Get-Process | Where-Object {$_.Name -like "*OneDrive*"}
-            if ($OneDrive) {
-                Start-Process "odopen://sync"
-            }
-            """
+            info = WindowsUtils.get_onedrive_info()
+            if not info or not info['is_running']:
+                print("ERROR: OneDrive is not running.")
+                return False
             
-            subprocess.run(
-                ["powershell", "-Command", ps_command],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=10
-            )
+            # Get OneDrive.Sync.Service path
+            version = info['version']
+            sync_service_path = Path(f"C:/Program Files/Microsoft OneDrive/{version}/OneDrive.Sync.Service.exe")
+            
+            if not sync_service_path.exists():
+                print(f"WARNING: OneDrive.Sync.Service not found at {sync_service_path}")
+                print("Sync may still proceed automatically.")
+            else:
+                # Trigger sync service
+                try:
+                    subprocess.Popen([str(sync_service_path)], shell=False)
+                    print("OneDrive sync service triggered.")
+                except Exception as e:
+                    print(f"WARNING: Could not trigger sync service: {e}")
             
             # Wait a moment for sync to start
             time.sleep(5)
             
-            # Monitor OneDrive sync status
+            # Monitor file attributes until sync is complete
+            check_interval = 60  # Check every 1 minute
             start_time = time.time()
+            
+            print(f"Monitoring file sync status (checking every {check_interval} seconds)...")
+            
             while (time.time() - start_time) < timeout:
-                # Check if OneDrive is syncing
-                check_command = """
-                $Shell = New-Object -ComObject Shell.Application
-                $OneDrive = $Shell.NameSpace($env:OneDrive)
-                if ($OneDrive) {
-                    $Status = $OneDrive.Self.Name
-                    if ($Status -notmatch "Syncing") {
-                        exit 0
-                    }
-                }
-                exit 1
+                # Check file attributes
+                check_cmd = f"""
+                $file = Get-Item -Path "{file_path}" -Force
+                $attributes = $file.Attributes -split ', '
+                if ($attributes -contains 'Archive' -and $attributes -contains 'ReparsePoint') {{
+                    Write-Output "SYNCED"
+                }} else {{
+                    Write-Output "SYNCING"
+                    Write-Output $file.Attributes
+                }}
                 """
+                
                 result = subprocess.run(
-                    ["powershell", "-Command", check_command],
+                    ["powershell", "-Command", check_cmd],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    timeout=5
+                    timeout=10,
+                    text=True
                 )
                 
-                if result.returncode == 0:
-                    return True
+                output = result.stdout.strip()
+                lines = output.split('\n')
                 
-                time.sleep(5)
+                if lines[0] == "SYNCED":
+                    print("File successfully synced to OneDrive!")
+                    return True
+                else:
+                    elapsed = int(time.time() - start_time)
+                    if len(lines) > 1:
+                        attrs = lines[1]
+                        print(f"  [{elapsed}s] File attributes: {attrs}")
+                    else:
+                        print(f"  [{elapsed}s] Still syncing...")
+                
+                time.sleep(check_interval)
             
             # Timeout reached
+            print(f"WARNING: Sync monitoring timed out after {timeout} seconds.")
+            print("File may still be syncing in the background.")
             return False
             
         except Exception as e:

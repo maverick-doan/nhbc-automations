@@ -21,6 +21,16 @@ def main():
         input("\nPress Enter to exit...")
         sys.exit(1)
     
+    # Check if OneDrive is running
+    print("Checking OneDrive status...")
+    if not WindowsUtils.ensure_onedrive_running():
+        print("ERROR: OneDrive must be running for sync functionality.")
+        print("Please start OneDrive manually and try again.")
+        input("\nPress Enter to exit...")
+        sys.exit(1)
+    print("✓ OneDrive is running")
+    print()
+    
     # Select input file
     print("Step 1: Select the sermon video/audio file to normalise...")
     input_file = WindowsUtils.select_file(title="Select Sermon File")
@@ -117,12 +127,14 @@ def main():
         
         # Sync OneDrive if applicable
         if is_onedrive:
-            print("Syncing OneDrive...")
-            sync_success = WindowsUtils.sync_onedrive()
+            print("Syncing file to OneDrive...")
+            print("This may take several minutes depending on file size.")
+            sync_success = WindowsUtils.sync_onedrive(output_file)
             if sync_success:
-                print("OneDrive sync completed successfully")
+                print("File fully synced to OneDrive")
             else:
-                print("OneDrive sync may still be in progress")
+                print("File may still be syncing in the background")
+                print("  Check OneDrive status before shutting down.")
             print()
         
         # Ask about shutdown
