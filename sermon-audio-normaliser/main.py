@@ -137,8 +137,8 @@ def main():
                 print("  Check OneDrive status before shutting down.")
             print()
         
-        # Ask about shutdown
-        shutdown = input("Shutdown computer now? (y/n): ").strip().lower()
+        # Ask about shutdown with auto-timeout
+        shutdown = WindowsUtils.timed_input("Shutdown computer now? (y/n): ", timeout=60, default='y')
         if shutdown == 'y':
             delay = 30
             print(f"\nShutting down in {delay} seconds...")

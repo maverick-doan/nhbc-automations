@@ -3,6 +3,8 @@ import shutil, os
 from pathlib import Path
 from tkinter import filedialog, Tk
 import time
+import msvcrt
+import sys
 
 class WindowsUtils:
     """Utility functions for Windows operations."""
@@ -139,6 +141,68 @@ class WindowsUtils:
             print("Shutdown cancelled.")
         except subprocess.CalledProcessError:
             print("No shutdown to cancel.")
+    
+    @staticmethod
+    def timed_input(prompt: str, timeout: int = 60, default: str = 'y') -> str:
+        """
+        Get user input with a timeout. Returns default value if timeout expires.
+        
+        Parameters:
+            prompt (str): The prompt to display to the user.
+            timeout (int): Timeout in seconds.
+            default (str): Default value to return on timeout.
+        
+        Returns:
+            str: User input or default value on timeout.
+        """
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+        
+        start_time = time.time()
+        input_chars = []
+        
+        while True:
+            elapsed = time.time() - start_time
+            remaining = int(timeout - elapsed)
+            
+            if elapsed >= timeout:
+                print(f"\nNo input received. Defaulting to '{default}'...")
+                return default
+            
+            # Update countdown display
+            if remaining > 0 and int(elapsed) != int(elapsed - 0.1):
+                sys.stdout.write(f"\r{prompt}[{remaining}s] ")
+                sys.stdout.flush()
+            
+            # Check for keyboard input
+            if msvcrt.kbhit():
+                char = msvcrt.getch()
+                
+                # Handle Enter key
+                if char in (b'\r', b'\n'):
+                    print()  # New line
+                    return ''.join(input_chars).strip().lower()
+                
+                # Handle Backspace
+                elif char == b'\x08':
+                    if input_chars:
+                        input_chars.pop()
+                        sys.stdout.write('\r' + ' ' * (len(prompt) + len(input_chars) + 20))
+                        sys.stdout.write(f"\r{prompt}[{remaining}s] {''.join(input_chars)}")
+                        sys.stdout.flush()
+                
+                # Handle regular characters
+                else:
+                    try:
+                        decoded = char.decode('utf-8')
+                        if decoded.isprintable():
+                            input_chars.append(decoded)
+                            sys.stdout.write(decoded)
+                            sys.stdout.flush()
+                    except:
+                        pass
+            
+            time.sleep(0.1)
     
     @staticmethod
     def select_file(title: str = "Select a file", filetypes: list = None) -> Path | None:
