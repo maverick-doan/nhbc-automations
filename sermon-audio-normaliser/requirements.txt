@@ -1,5 +1,5 @@
 # Requirements for sermon-audio-normaliser
-# No third-party Python packages required.
+tzdata
 # Requires Python 3.10 or newer (uses PEP 604 union types).
-# External dependency: FFmpeg must be installed and available on PATH.
+# External dependency: FFmpeg must be installed and available on PATH and OneDrive must be installed and configured on the system.
 # Download: https://ffmpeg.org/download.html

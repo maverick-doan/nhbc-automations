@@ -25,12 +25,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller
+          pip install pyinstaller tzdata
 
       - name: Build executable with PyInstaller
         run: |
           cd sermon-audio-normaliser
-          pyinstaller --onefile main.py --name sermon-audio-normaliser --clean
+          pyinstaller --onefile --collect-all zoneinfo --hidden-import zoneinfo main.py --name sermon-audio-normaliser --clean
 
       - name: Commit and push changes
         run: |

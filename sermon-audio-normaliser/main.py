@@ -28,7 +28,7 @@ def main():
         print("Please start OneDrive manually and try again.")
         input("\nPress Enter to exit...")
         sys.exit(1)
-    print("✓ OneDrive is running")
+    print("OneDrive is running")
     print()
     
     # Select input file
@@ -67,7 +67,7 @@ def main():
             input("\nPress Enter to exit...")
             sys.exit(0)
     else:
-        print("✓ Output folder is in OneDrive")
+        print("Output folder is in OneDrive")
     print()
     
     # Create output filename with timestamp (preserve input extension)
