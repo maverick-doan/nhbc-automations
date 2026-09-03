@@ -86,7 +86,7 @@ class AudioNormaliser:
             f"measured_LRA={stats['input_lra']}:"
             f"measured_thresh={stats['input_thresh']}:"
             f"offset={stats['target_offset']}:"
-            "print_format=summary"
+            "linear=false:print_format=summary"
         )
     
     def normalise_audio(self, input_file: Path, output_file: Path) -> None:
