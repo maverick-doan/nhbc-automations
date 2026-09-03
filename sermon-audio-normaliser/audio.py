@@ -86,7 +86,7 @@ class AudioNormaliser:
             f"measured_LRA={stats['input_lra']}:"
             f"measured_thresh={stats['input_thresh']}:"
             f"offset={stats['target_offset']}:"
-            "linear=true:print_format=summary"
+            "print_format=summary"
         )
     
     def normalise_audio(self, input_file: Path, output_file: Path) -> None:
@@ -106,6 +106,7 @@ class AudioNormaliser:
 
         command = [
             "ffmpeg",
+            "-y",  # Overwrite output file without prompting
             "-i", str(input_file),
             "-c:v", "copy",
             "-c:a", self.audio_codec,
